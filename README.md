@@ -272,6 +272,73 @@ Observações desse boot:
 
 ---
 
+## 11. Jogo não-Steam (repack) — Sekiro
+
+Instalação feita a partir de um repack FitGirl em `~/Downloads`, registrada manualmente no
+Lutris 0.5.22 (a CLI dessa versão **não** tem comando de "adicionar jogo", então a entrada
+foi inserida direto no SQLite `~/.local/share/lutris/pga.db` + YAML correspondente).
+
+### Layout
+
+| Item | Caminho |
+|---|---|
+| Prefix | `~/Games/Sekiro/prefix` (win64, criado com `dw-proton-x86_64`) |
+| Jogo | `~/Games/Sekiro/prefix/drive_c/Games/Sekiro - Shadows Die Twice` |
+| Executável | `...\drive_c\Games\Sekiro - Shadows Die Twice\sekiro.exe` |
+| Tamanho | 13 GB |
+| ID no Lutris | 5 (`sekiro-shadows-die-twice`) |
+
+Config gravada em `~/.config/lutris/games/sekiro-shadows-die-twice-5.yml`:
+
+```yaml
+game:
+  arch: win64
+  exe: /home/.../Games/Sekiro/prefix/drive_c/Games/Sekiro - Shadows Die Twice/sekiro.exe
+  path: /home/.../Games/Sekiro/prefix/drive_c/Games/Sekiro - Shadows Die Twice
+  prefix: /home/wenningtonda/Games/Sekiro/prefix
+system:
+  gpu: card0            # Lutris injeta VK_DRIVER_FILES + offload
+runner: wine
+slug: sekiro-shadows-die-twice
+wine:
+  arch: win64
+  version: dw-proton-x86_64
+```
+
+### O que acontece na execução
+
+- O Lutris 0.5.22 identifica `dw-proton` como build baseada em Proton e executa via
+  **umu-run** (container `steamrt4`), não como wine puro. Funciona, mas o log inicial é verboso.
+- `system: gpu: card0` faz o Lutris setar `VK_DRIVER_FILES` e as variáveis de offload —
+  o jogo abre na GTX 1650 mesmo sendo lançado pela CLI, sem depender do `.desktop`.
+- **Primeiro boot compila shaders do DXVK** (`dxvk-shader-*` em 8 threads a ~90% de CPU por
+  ~3 min). Depois disso estabiliza. Uso no boot: ~1,3 GB de VRAM e 25% de GPU no menu.
+
+### Avisos conhecidos
+
+- O instalador FitGirl reporta **"27 missing files"** ao final: são os componentes opcionais
+  que foram desmarcados (packs de idioma, bonus content, credits video). Os dados do jogo
+  (`Data1–5.bdt`, ~12 GB) estão completos — o jogo sobe normalmente.
+- Ruído inofensivo no log: `gamemodeauto: dlopen failed - libgamemode.so`. O gamemode entra
+  via `LD_PRELOAD=libgamemodeauto.so.0` e funciona; a mensagem é do `libgamemode.so` sem
+  versionamento.
+- `Proton: Error: unable to use parent for game drive, path /home` também é ruído — a
+  execução segue e o jogo abre.
+- Em jogo, manter **texturas em High** (não Max) por causa dos 4 GB de VRAM.
+
+### Reverter / remover
+
+```bash
+python3 -c "import sqlite3;c=sqlite3.connect('$HOME/.local/share/lutris/pga.db');\
+c.execute('delete from games where id=5');c.commit()"
+rm ~/.config/lutris/games/sekiro-shadows-die-twice-5.yml
+rm -rf ~/Games/Sekiro
+```
+
+---
+
+## Estrutura do repo
+
 ```
 .
 ├── README.md
