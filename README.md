@@ -18,7 +18,7 @@ Tudo aqui é reversível. Nenhum hardware foi alterado.
 | Swap | zram 7.5 GB, zstd, prioridade 100 | sem swap em disco |
 | Disco | NVMe IM2P33F8ABR2-512GB (476 GB, ~237 GB livres) | DRAM-less, entrada |
 | Tela | AU Optronics 0xAF90, 1920x1080 @ 144.149 Hz | VRR suportado |
-| Sistema | CachyOS (Arch), kernel `7.2.9-2-cachyos`, Niri 26.04 | driver `nvidia-open` 615.78.08 |
+| Sistema | CachyOS (Arch), kernel `7.3.0-4-cachyos`, Niri 26.04 | driver `nvidia-open` 615.78.08 (config feito em 7.2.9-2, atualizado para 7.3.0-4 no reboot) |
 | BIOS | V1.22 | sem opção de MUX |
 
 ---
@@ -238,19 +238,54 @@ MANGOHUD_CONFIG=fps_limit=0 mangohud %command%
 
 ---
 
-## Estrutura do repo
+## 10. Verificação pós-boot
+
+Depois do reboot, `./verify.sh` roda tudo em modo somente-leitura (sem sudo) e devolve
+`0` se estiver tudo certo.
+
+Resultado em 2026-10-25, kernel `7.3.0-4-cachyos` — **19 OK, 0 falhas**:
+
+| Checagem | Resultado |
+|---|---|
+| vermagic do módulo == kernel | OK (`7.3.0-4-cachyos`) |
+| `nvidia_drm modeset=Y` | OK |
+| `nvidia-smi` responde (GTX 1650) | OK |
+| Vulkan com offload escolhe a NVIDIA | OK |
+| VRR habilitado (144 Hz) | OK |
+| config do Niri válida | OK |
+| `sched_ext` enabled | OK |
+| `scx_loader` habilitado no boot | OK |
+| `gamemoded` ativo e habilitado | OK |
+| gamemode não força governor `performance` | OK |
+| overrides de Steam/Lutris com offload | OK |
+| configs de usuário presentes | OK |
+| nenhum erro `NVRM`/`Xid` no boot | OK |
+
+Observações desse boot:
+
+- O kernel **subiu de `7.2.9-2` para `7.3.0-4`** e o pacote `linux-cachyos-nvidia-open`
+  acompanhou (`7.3.0-4`) — exatamente o cenário de risco descrito na seção 8, que passou.
+  Se não tivesse acompanhado, o script falharia na primeira checagem.
+- `scx_lavd` (PID 771) subiu sozinho pelo `scx_loader`, sem nenhuma ação manual.
+- Apareceu um `XID 541` no log, mas é do driver `r8169` (placa de rede Realtek), não da NVIDIA.
+- Perfil de energia permaneceu `power-saver` — nada reverteu a decisão sobre temperatura.
+
+---
 
 ```
-configs/
-├── dxvk.conf                              # mitigação Xid 109
-├── gamemode.ini                           # governor travado em powersave
-├── MangoHud.conf                          # cap 60 fps + HUD oculto
-├── desktop/
-│   ├── steam.desktop                      # override com offload NVIDIA
-│   └── net.lutris.Lutris.desktop          # idem
-├── niri/
-│   ├── display.kdl                        # VRR na eDP-1
-│   └── rules.kdl                          # blur off em jogos
-└── system/
-    └── scx_loader.toml                    # scx_lavd no boot
+.
+├── README.md
+├── verify.sh                                # checagem pós-boot (19 checks, sem sudo)
+└── configs/
+    ├── dxvk.conf                            # mitigação Xid 109
+    ├── gamemode.ini                         # governor travado em powersave
+    ├── MangoHud.conf                        # cap 60 fps + HUD oculto
+    ├── desktop/
+    │   ├── steam.desktop                    # override com offload NVIDIA
+    │   └── net.lutris.Lutris.desktop        # idem
+    ├── niri/
+    │   ├── display.kdl                      # VRR na eDP-1
+    │   └── rules.kdl                        # blur off em jogos
+    └── system/
+        └── scx_loader.toml                  # scx_lavd no boot
 ```
